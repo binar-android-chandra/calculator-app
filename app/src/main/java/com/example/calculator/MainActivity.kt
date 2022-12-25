@@ -11,8 +11,6 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -36,113 +34,12 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun MainScreen() {
-    val numbers = (1..9).toList()
-    val isAddOperator = remember { mutableStateOf(false) }
-    val hasResult = remember { mutableStateOf(false) }
-    val text = remember { mutableStateOf("") }
-    val result = remember { mutableStateOf("") }
-
-    fun handleBackSpace() {
-        if (text.value.isNotEmpty()) text.value = text.value.substring(0, text.value.length - 1)
-    }
-
-    fun handleAllClear() {
-        isAddOperator.value = false
-        hasResult.value = false
-        text.value = ""
-        result.value = ""
-    }
-
-    fun addSubtractCalculate(passedList: MutableList<Any>): Float {
-        var result = passedList[0] as Float
-
-        for (i in passedList.indices) {
-            if (passedList[i] is Char && i != passedList.lastIndex) {
-                val operator = passedList[i]
-                val nextDigit = passedList[i + 1] as Float
-                if (operator == '+')
-                    result += nextDigit
-                if (operator == '-')
-                    result -= nextDigit
-            }
-        }
-
-        return result
-    }
-
-    fun calcTimesDiv(passedList: MutableList<Any>): MutableList<Any> {
-        val newList = mutableListOf<Any>()
-        var restartIndex = passedList.size
-
-        for (i in passedList.indices) {
-            if (passedList[i] is Char && i != passedList.lastIndex && i < restartIndex) {
-                val operator = passedList[i]
-                val prevDigit = passedList[i - 1] as Float
-                val nextDigit = passedList[i + 1] as Float
-                when (operator) {
-                    'x' -> {
-                        newList.add(prevDigit * nextDigit)
-                        restartIndex = i + 1
-                    }
-                    '/' -> {
-                        newList.add(prevDigit / nextDigit)
-                        restartIndex = i + 1
-                    }
-                    else -> {
-                        newList.add(prevDigit)
-                        newList.add(operator)
-                    }
-                }
-            }
-
-            if (i > restartIndex)
-                newList.add(passedList[i])
-        }
-
-        return newList
-    }
-
-    fun timesDivisionCalculate(passedList: MutableList<Any>): MutableList<Any> {
-        var list = passedList
-        while (list.contains('x') || list.contains('/')) {
-            list = calcTimesDiv(list)
-        }
-        return list
-    }
-
-    fun digitsOperators(): MutableList<Any> {
-        val list = mutableListOf<Any>()
-        var currentDigit = ""
-        for (character in text.value) {
-            if (character.isDigit())
-                currentDigit += character
-            else {
-                list.add(currentDigit.toFloat())
-                currentDigit = ""
-                list.add(character)
-            }
-        }
-
-        if (currentDigit != "")
-            list.add(currentDigit.toFloat())
-
-        return list
-    }
-
-    fun calculateResults(): String {
-        val digitsOperators = digitsOperators()
-        if (digitsOperators.isEmpty()) return ""
-
-        val timesDivision = timesDivisionCalculate(digitsOperators)
-        if (timesDivision.isEmpty()) return ""
-
-        val result = addSubtractCalculate(timesDivision)
-        return result.toInt().toString()
-    }
-
-    fun equalsAction() {
-        result.value = calculateResults()
-    }
+    val viewModel = MainViewModel()
+    val numbers = viewModel.numbers
+    val isAddOperator = viewModel.isAddOperator
+    val hasResult = viewModel.hasResult
+    val text = viewModel.text
+    val result = viewModel.result
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -209,15 +106,14 @@ fun MainScreen() {
                             modifier = Modifier.padding(5.dp)
                         ) {
                             Button(
-                                onClick = { handleBackSpace() },
+                                onClick = { text.value = "${text.value}." },
                                 modifier = Modifier.fillMaxSize(),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray),
                             ) {
-                                Icon(
-                                    Icons.Default.Delete,
-                                    contentDescription = "delete",
-                                    modifier = Modifier.height(40.dp),
-                                    tint = MaterialTheme.colors.primary
+                                Text(
+                                    text = ".",
+                                    fontSize = 30.sp,
+                                    color = MaterialTheme.colors.primary
                                 )
                             }
                         }
@@ -250,7 +146,7 @@ fun MainScreen() {
                         ) {
                             Button(
                                 onClick = {
-                                    equalsAction()
+                                    viewModel.equalsAction()
                                     hasResult.value = true
                                 },
                                 modifier = Modifier.fillMaxSize(),
@@ -270,14 +166,34 @@ fun MainScreen() {
                             modifier = Modifier.padding(5.dp),
                         ) {
                             Button(
-                                onClick = { handleAllClear() },
+                                onClick = { viewModel.handleAllClear() },
                                 modifier = Modifier.fillMaxSize(),
                                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray),
                             ) {
                                 Text(
                                     text = "AC",
                                     fontSize = 25.sp,
-                                    color = MaterialTheme.colors.primary
+                                    color = MaterialTheme.colors.primary,
+                                    modifier = Modifier.height(40.dp),
+                                )
+                            }
+                        }
+                    }
+                    items(1) {
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.padding(5.dp)
+                        ) {
+                            Button(
+                                onClick = { viewModel.handleBackSpace() },
+                                modifier = Modifier.fillMaxSize(),
+                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.Gray),
+                            ) {
+                                Icon(
+                                    Icons.Default.Delete,
+                                    contentDescription = "delete",
+                                    modifier = Modifier.height(40.dp),
+                                    tint = MaterialTheme.colors.primary
                                 )
                             }
                         }
@@ -292,7 +208,7 @@ fun MainScreen() {
                     ) {
                         Button(
                             onClick = {
-                                if (isAddOperator.value) handleBackSpace()
+                                if (isAddOperator.value) viewModel.handleBackSpace()
                                 if (hasResult.value) text.value = result.value
                                 isAddOperator.value = true
                                 hasResult.value = false
@@ -314,7 +230,7 @@ fun MainScreen() {
                     ) {
                         Button(
                             onClick = {
-                                if (isAddOperator.value) handleBackSpace()
+                                if (isAddOperator.value) viewModel.handleBackSpace()
                                 if (hasResult.value) text.value = result.value
                                 isAddOperator.value = true
                                 hasResult.value = false
@@ -336,7 +252,7 @@ fun MainScreen() {
                     ) {
                         Button(
                             onClick = {
-                                if (isAddOperator.value) handleBackSpace()
+                                if (isAddOperator.value) viewModel.handleBackSpace()
                                 if (hasResult.value) text.value = result.value
                                 isAddOperator.value = true
                                 hasResult.value = false
@@ -358,7 +274,7 @@ fun MainScreen() {
                     ) {
                         Button(
                             onClick = {
-                                if (isAddOperator.value) handleBackSpace()
+                                if (isAddOperator.value) viewModel.handleBackSpace()
                                 if (hasResult.value) text.value = result.value
                                 isAddOperator.value = true
                                 hasResult.value = false
